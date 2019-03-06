@@ -302,7 +302,7 @@ typedef struct {
 } System_t;
 System_t System;
 
-#define MesssgeDataSize 1500
+#define MesssgeDataSize 1038
 typedef struct QueueType {
 	u8 MsgType; //信息类型
 	u8 Version[3]; //版本号
@@ -329,8 +329,8 @@ typedef struct{
 
 typedef struct
 {
-	u32 identifNum; // used at short message mode
     u8 MsgType;	//信息类型
+    u8 SerialNum[3];//信息对照码
     u8 Attribute[2];	//属性
     u16 MsgLen;		//长度
     u8 data[1500];	//消息体
@@ -387,5 +387,7 @@ extern int wtd_fd;
 
 extern unsigned char TimeIndex;
 extern long StayMinute;
+extern void cpyVersion(u8 *des);//版本号赋值
+extern u32 cpyInfoTime(u8 *des);//信息生成时间+流水号赋值
 
 #endif /* GENERAL_H_ */
