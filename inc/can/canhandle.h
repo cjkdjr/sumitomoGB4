@@ -47,6 +47,7 @@ typedef struct sumitomo_parm_grp_0001_s
 }sumitomo_parm_grp_0001_t;
 
 extern sumitomo_parm_grp_0001_t sumitomo_parm_grp_0001;
+
 /*
 	参数组 0x0002 用于“设定保养剩余时间及回复信息”
 */
@@ -204,6 +205,7 @@ typedef struct sumitomo_parm_grp_0700_s
 	u8 WorkMode_4[6];
 	u8 WorkMode_5[6];
 	u8 Breaker_Operation_Time[3];	//（Breaker中的一部分 3个字节）
+	u8 Crusher_Operation_Time[3];
 	u8 Option_Line_Operation_Time[3];	//（Crusher中的一部分，3个字节）
 	u8 Option_Line_Operation_Time_2nd[3];	//（OptionLine_2中的一部分，3字节）
 	u8 Overheat_Power_Reduction_Time[3];	//（OverheatPowerReduction_1中的一部分，3字节）
@@ -512,7 +514,7 @@ typedef struct sumitomo_parm_grp_0911_s
 typedef struct sumitomo_parm_grp_0912_s
 {
 	u8 CoolDownTimeDst_1[6];
-	u8 oolDownTimeDst_2[6];
+	u8 CoolDownTimeDst_2[6];
 }sumitomo_parm_grp_0912_t;
 
 /*
@@ -839,8 +841,18 @@ typedef struct sumitomo_parm_grp_0D00_s
 	u8 canbus_b_18FDB200[6];
 }sumitomo_parm_grp_0D00_t;
 
+extern void Make_Sumitomo_0001_s(sumitomo_parm_grp_0001_t *sumitomo_0001);
+extern void Make_Sumitomo_0002_s(sumitomo_parm_grp_0002_t *sumitomo_0002);
+extern void Make_Sumitomo_0003_s(sumitomo_parm_grp_0003_t *sumitomo_0003);
+extern void Make_Sumitomo_0004_s(sumitomo_parm_grp_0004_t *sumitomo_0004);
+extern void Make_Sumitomo_0005_s(sumitomo_parm_grp_0005_t *sumitomo_0005);
+extern void Make_Sumitomo_0006_s(sumitomo_parm_grp_0006_t *sumitomo_0006);
+extern void Make_Sumitomo_0008_s(sumitomo_parm_grp_0008_t *sumitomo_0008);
+extern void Make_Sumitomo_0009_s(sumitomo_parm_grp_0009_t *sumitomo_0009);
 
-extern void Make_30_Msg();//初期设定信息
+extern u8 cand_Init_Set;//初期设定状态标志位,0x00-初期设定未完成，0x01-初期设定已完成
+
+extern void MsgMake_30();//初期设定信息
 
 extern void *canh_TransProcess(void *argc);
 
