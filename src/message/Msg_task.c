@@ -180,8 +180,8 @@ void RT_ger_reply_msg(u8 *serialnum, u8 msgType, u8 result) {
  */
 void MsgDecode_61(u8 *data) {
 //	data[0]~data[7] //终端上行消息中的信息生成时间?对应发送信息用？
-	u8 Msg_type = data[8];  //回执信息类型
-	u8 result = data[9];         //处理结果
+//	u8 Msg_type = data[8];  //回执信息类型
+//	u8 result = data[9];         //处理结果
 
 }
 
@@ -189,29 +189,29 @@ void MsgDecode_61(u8 *data) {
  定时信息：0x22
  发送完成后收到回执信息认为成功
 */
--void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22) {
--//     u16 index = 0;
--
--       memset(Msg_22, 0, sizeof(QUE_TDF_QUEUE_MSG));
--       // 信息类型
--       Msg_22->MsgType = 0x22;
--       //版本号
--       cpyVersion(Msg_22->Version);
--       // 信息生成时间
--       cpyInfoTime(Msg_22->Time);
--       //属性标识  高字节在前
--       Msg_22->Attribute[0] = 0x40;
--       Msg_22->Attribute[1] = 0;
--
--       memcpy(Msg_22->data, &sumitomo_parm_grp_0001, sizeof(sumitomo_parm_grp_0001_t));
--
--#if 0
--       //信息长度
--       u8 len[4] = { 0 };
--       sprintf((char*) len, "%04X", (unsigned int) index); //消息体长度
--       api_HexToAsc(len, Msg_22->length, strlen((char*) len));
--#endif
--}
+void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22) {
+//     u16 index = 0;
+
+       memset(Msg_22, 0, sizeof(QUE_TDF_QUEUE_MSG));
+       // 信息类型
+       Msg_22->MsgType = 0x22;
+       //版本号
+       cpyVersion(Msg_22->Version);
+       // 信息生成时间
+       cpyInfoTime(Msg_22->Time);
+       //属性标识  高字节在前
+       Msg_22->Attribute[0] = 0x40;
+       Msg_22->Attribute[1] = 0;
+
+       memcpy(Msg_22->data, &sumitomo_parm_grp_0001, sizeof(sumitomo_parm_grp_0001_t));
+
+#if 0
+       //信息长度
+      u8 len[4] = { 0 };
+       sprintf((char*) len, "%04X", (unsigned int) index); //消息体长度
+       api_HexToAsc(len, Msg_22->length, strlen((char*) len));
+#endif
+}
 
 
 /*

@@ -188,7 +188,6 @@ void strGet(u8 *dest, u8 *src, int length, int *offset);
 /****************** 参数保存读取函数 ********************************/
 extern void save2flash(char *file, u8 *data, u32 length);       //参数保存
 extern int getData(char *file, u8 *data);                       //参数读取
-extern void InitE5();											//E2参数读取
 /******************协议交互类信息************************************/
 extern void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22);//定时信息
 extern void MsgMake_30();//初期设定信息

@@ -26,10 +26,12 @@
 #include "bluetooth.h"
 #include "candriver.h"
 #include "candata.h"
+#include "canhandle.h"
 #include "iap.h"
 #include "gpsdeal.h"
 #include "gsm.h"
 #include "sys_manage.h"
+#include "message_process.h"
 
 //版本号自定义 版本更新实时修改
 struct Version_con Version = { 0x1075, 0x01 };
@@ -110,7 +112,7 @@ void *main_PthreadManagement(void *data) {
 	while (main_PthParam.flag) {
 		main_PthParam.sta = 1;
 		main_WatchPthread(&can_PthParamA, MAIN_TIMER_SEC(60), CanData_sockA, "CANAsock");
-		main_WatchPthread(&can_PthParam, MAIN_TIMER_SEC(60), canh_TransProcess, "CANTransProcess")
+		main_WatchPthread(&can_PthParam, MAIN_TIMER_SEC(60), canh_TransProcess, "CANTransProcess");
 //		main_WatchPthread(&can_PthParamRecvB, MAIN_TIMER_SEC(60), CanData_SockRecvB, "CANBrecv");
 //		main_WatchPthread(&can_PthParamSendB, MAIN_TIMER_SEC(60), CanData_SockRecvC, "CANCrecv");
 //		main_WatchPthread(&can_PthParamRecvC, MAIN_TIMER_SEC(60), CanData_SockSendB, "CANBsend");

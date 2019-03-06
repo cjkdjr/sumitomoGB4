@@ -385,7 +385,6 @@ extern pthread_mutex_t can_vcumutex;
  *-----------------------------------------------------------------------------------------------------------------------*/
 extern int wtd_fd;
 
-extern unsigned char TimeIndex;
 extern long StayMinute;
 extern void cpyVersion(u8 *des);//版本号赋值
 extern u32 cpyInfoTime(u8 *des);//信息生成时间+流水号赋值
