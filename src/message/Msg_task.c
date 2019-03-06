@@ -35,7 +35,7 @@ char BackAPN[15] = { 0x05, 0x63, 0x6D, 0x6E, 0x65, 0x74 }; /*CMNET*/
 char IAPDefaultIP[7] = { 0x06, 0XDA, 0XCF, 0X42, 0X6B, 0x0F, 0xF8 };/*218.207.66.107:4088*/
 
 void MsgMake_32(u8 *serialnum);
-void MsgMake_34(u8 *serialnum, u8 *data);
+void MsgMake_34(u8 *serialnum, u8 data);
 void MsgMake_36(u8 *serialnum, u8 *data);
 void MsgMake_38(u8 *serialnum, u8 TypeVer, u32 ParOpt, u8 ReplyType);
 void MsgMake_42(u8 *serialnum, u16 ArrayNum, u8 ReplyType);
@@ -113,40 +113,6 @@ void save2flash(char *file, u8 *data, u32 length) {
 	close(fd);
 }
 
-/*********************************************************
- 初始化E5参数，中心没有设置时候且本地也没有保存参数情况下设置
- *********************************************************/
-void InitE5() {
-	if (SYS_SET2.SET_REC_NUMMBER[0] == 0 || SYS_SET2.SET_REC_NUMMBER[0] == 0XFF) {
-		memcpy((char*) SYS_SET2.SET_REC_NUMMBER, (char*) CenterRecv_Num, 8);
-		//printfHexData(SYS_SET.SET_REC_NUMMBER,8);
-	}
-	if (SYS_SET2.SET_SEND_NUMMBER[0] == 0 || SYS_SET2.SET_SEND_NUMMBER[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_SEND_NUMMBER, (char*) CenterSend_Num, 8);
-	if (SYS_SET2.SET_IP_DEFAULT[0] == 0 || SYS_SET2.SET_IP_DEFAULT[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_IP_DEFAULT, CenterDefaultIP, 7);
-	if (SYS_SET2.SET_APN_DEFAULT[0] == 0 || SYS_SET2.SET_APN_DEFAULT[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_APN_DEFAULT, DefaultAPN, 6);
-	if (SYS_SET2.SET_IP_BACKUP[0] == 0 || SYS_SET2.SET_IP_BACKUP[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_IP_BACKUP, CenterBackIP, 7);
-	if (SYS_SET2.SET_APN_BACKUP[0] == 0 || SYS_SET2.SET_APN_BACKUP[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_APN_BACKUP, BackAPN, 6);
-	if (SYS_SET2.SET_IP_IAP[0] == 0 || SYS_SET2.SET_IP_IAP[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_IP_IAP, IAPDefaultIP, 7);
-	if (SYS_SET2.SET_APN_IAP[0] == 0 || SYS_SET2.SET_APN_IAP[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_APN_IAP, DefaultAPN, 6);
-	if (SYS_SET2.SET_CENTER_NUMMBER[0] == 0
-			|| SYS_SET2.SET_CENTER_NUMMBER[0] == 0XFF)
-		memcpy((char*) SYS_SET2.SET_CENTER_NUMMBER, (char*) MessageCenterNum, 8); // sms center of cmcc.heb
-	if (SYS_SET2.SET_IP_CUT != 1)
-		SYS_SET2.SET_IP_CUT = 0X00;
-	if (SYS_SET2.SET_IP_CUTMAX <= 0 || SYS_SET2.SET_IP_CUTMAX > 9)
-		SYS_SET2.SET_IP_CUTMAX = 9;
-	if (SYS_SET2.RESESTER_NET == 0 || SYS_SET2.RESESTER_NET == 0XFF)
-		SYS_SET2.RESESTER_NET = 2; //0自动，1：2G，2：4G
-	if (SYS_SET2.Time_Zone_Config == 0 || SYS_SET2.Time_Zone_Config == 0XFF)
-		SYS_SET2.Time_Zone_Config = 480;   //默认东八区480分钟
-}
 /**
  * 从本地读取数据,开机读取配置文件使用
  * u8 *file:文件路径+名
@@ -174,84 +140,6 @@ int getData(char *file, u8 *data) {
 	}
 	return length;
 }
-/*
- 版本号赋值
- */
-void cpyVersion(u8 *des) {
-	//版本号
-	des[0] = Version.Protocol >> 8;
-	des[1] = Version.Protocol;
-	des[2] = Version.Code;
-	return;
-}
-/*
- 信息生成时间+流水号赋值
- */
-u32 cpyInfoTime(u8 *des) {
-	struct tm *p;
-//	struct timeval tv;
-//	u16 tmp_sec;
-	time_t now_time;
-	u32 sys_run_msec;
-	u16 tmp_u16;
-	//信息生成时间:获取当前时间 = 系统运行时间+ key on时间（RTC时间）
-	u32 Sys_Run_Time = api_GetSysSecs();
-	now_time = Sys_Start_Time + Sys_Run_Time;
-	p = localtime(&now_time);
-	des[0] = p->tm_year - 100;
-	des[1] = p->tm_mon + 1;
-	des[2] = p->tm_mday;
-	des[3] = p->tm_hour;
-	des[4] = p->tm_min;
-	tmp_u16 = (p->tm_sec) * 1000;
-	sys_run_msec = api_GetSysmSecs();
-	tmp_u16 += sys_run_msec % 1000;
-	des[5] = tmp_u16 >> 8;
-	des[6] = tmp_u16;
-	//信息生成时间
-//	gettimeofday(&tv, NULL);
-//	p = localtime(&tv.tv_sec);
-//	des[0] = p->tm_year - 100;
-//	des[1] = p->tm_mon + 1;
-//	des[2] = p->tm_mday;
-//	des[3] = p->tm_hour;
-//	des[4] = p->tm_min;
-//	tmp_sec = p->tm_sec * 1000 + tv.tv_usec / 1000;
-//	des[5] = tmp_sec >> 8;
-//	des[6] = tmp_sec;
-	if (Serial_Num < 0xFF) {
-		Serial_Num++;
-	} else {
-		Serial_Num = 0;
-	}
-	des[7] = Serial_Num;
-	return sys_run_msec;
-}
-
-void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22) {
-//	u16 index = 0;
-
-	memset(Msg_22, 0, sizeof(QUE_TDF_QUEUE_MSG));
-	// 信息类型
-	Msg_22->MsgType = 0x22;
-	//版本号
-	cpyVersion(Msg_22->Version);
-	// 信息生成时间
-	cpyInfoTime(Msg_22->Time);
-	//属性标识  高字节在前
-	Msg_22->Attribute[0] = 0x40;
-	Msg_22->Attribute[1] = 0;
-
-	memcpy(Msg_22->data, &sumitomo_parm_grp_0001, sizeof(sumitomo_parm_grp_0001_t));
-
-#if 0
-	//信息长度
-	u8 len[4] = { 0 };
-	sprintf((char*) len, "%04X", (unsigned int) index); //消息体长度
-	api_HexToAsc(len, Msg_22->length, strlen((char*) len));
-#endif
-}
-
 
 //-----------------------------------------交互类信息-----------------------------------------------//
 
@@ -291,27 +179,112 @@ void RT_ger_reply_msg(u8 *serialnum, u8 msgType, u8 result) {
  中心通用应答消息
  */
 void MsgDecode_61(u8 *data) {
+//	data[0]~data[7] //终端上行消息中的信息生成时间?对应发送信息用？
+	u8 Msg_type = data[8];  //回执信息类型
+	u8 result = data[9];         //处理结果
 
 }
+
+/*
+ 定时信息：0x22
+ 发送完成后收到回执信息认为成功
+*/
+-void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22) {
+-//     u16 index = 0;
+-
+-       memset(Msg_22, 0, sizeof(QUE_TDF_QUEUE_MSG));
+-       // 信息类型
+-       Msg_22->MsgType = 0x22;
+-       //版本号
+-       cpyVersion(Msg_22->Version);
+-       // 信息生成时间
+-       cpyInfoTime(Msg_22->Time);
+-       //属性标识  高字节在前
+-       Msg_22->Attribute[0] = 0x40;
+-       Msg_22->Attribute[1] = 0;
+-
+-       memcpy(Msg_22->data, &sumitomo_parm_grp_0001, sizeof(sumitomo_parm_grp_0001_t));
+-
+-#if 0
+-       //信息长度
+-       u8 len[4] = { 0 };
+-       sprintf((char*) len, "%04X", (unsigned int) index); //消息体长度
+-       api_HexToAsc(len, Msg_22->length, strlen((char*) len));
+-#endif
+-}
+
+
+/*
+ 初期设定信息：0x30
+ 发送完成后收到终端通用应答算法送成功
+*/
+u32 Sys_Run_Time;        //系统开机后的运行时间---局部变量
+
+QUE_TDF_QUEUE_MSG Msg_30;
+u16 MSG_30_Index = 0;
+u32 msg_strat_time_ms = 0;
+u32 MSG_30_lastTime;
+void MsgMake_30() {
+	u16 tmp_u16;
+	u16 index = 0;
+	//信息类型
+	Msg_30.MsgType = 0x30;
+	//版本号
+	cpyVersion(Msg_30.Version);
+	//info time
+	cpyInfoTime(Msg_30.Time);
+	//属性标识  高字节在前
+	Msg_30.Attribute[0] = 0xC0;
+	Msg_30.Attribute[1] = 0;
+	//参数组编号
+	tmp_u16 = sizeof(sumitomo_parm_grp_0004_t);
+	Msg_30.data[index++] = 0x00;
+	Msg_30.data[index++] = 0x04;
+	//参数组长度
+	Msg_30.data[index++] = tmp_u16 >> 8;
+	Msg_30.data[index++] = tmp_u16;
+	//参数组内容
+	Make_Sumitomo_0004_s(&parm_grp_0004);
+	memcpy(&Msg_30+index,&parm_grp_0004 , tmp_u16);
+	index += tmp_u16;
+
+	//信息长度
+	u8 len[4] = { 0 };
+	sprintf((char*) len, "%04X", (unsigned int) MSG_30_Index); //消息体长度
+	api_HexToAsc(len, Msg_30.length, strlen((char*) len));
+	//信息入队列
+	printf_can("<Make_30_message>message ready in queue %d bytes!!! \n", MSG_30_Index + 14);
+	InterSta_in(&Msg_30);
+	memset(&Msg_30, 0x00, sizeof(QUE_TDF_QUEUE_MSG));
+	MSG_30_Index = 0;
+}
+
 /*
  decode 0x31 初期设定回复信息
+ 初期设定成功返回0，删除0x30信息，否则返回1，不删除，等待重发
  */
-void MsgDecode_31(u8 *serialnum, u8 *data) {
-	if (data[0] == 0x31) {
-		if (data[1] == 0x00) {
+u8  MsgDecode_31(u8 *serialnum, u8 *data) {
+	if (data[8] == 0x30) {
+		if (data[9] == 0x00) {
 			//TODO make 0x32 reply
 			MsgMake_32(serialnum);
+			return 0;
 		} else {
 			//TODO make 0x30 resend
+			return 1;
 		}
 	}
+	return 1;
 }
+/*
+ 初期设定完成信息，不需要中心回复通用应答
+ */
 QUE_TDF_QUEUE_MSG Msg_32;
 void MsgMake_32(u8 *serialnum) {
 	memset(&Msg_32, 0, sizeof(QUE_TDF_QUEUE_MSG));
 	u16 index = 0;
 	//信息类型
-	Msg_32.MsgType = 0x30;
+	Msg_32.MsgType = 0x31;
 	//版本号
 	cpyVersion(Msg_32.Version);
 	//信息生成时间
@@ -335,21 +308,21 @@ void MsgMake_32(u8 *serialnum) {
 	InterSta_in(&Msg_32);
 }
 /*
- 设置/回叫初期设定状态信息
+ 设置/回叫初期设定状态信息，此信息需要先回复通用应答
  */
 void MsgDecode_33(u8 *serialnum, u8 *data) {
 	if (data[0] == 0x00) { //TODO 设置初期设定状态
-
+		cand_Init_Set = data[1];
 	} else if (data[0] == 0x01) { //TODO回叫初期设定状态
 
 	}
-	MsgMake_34(serialnum, &data[1]);
+	MsgMake_34(serialnum, cand_Init_Set);
 }
 /*
  0x34 回叫初期设定状态回复信息
  */
 QUE_TDF_QUEUE_MSG Msg_34;
-void MsgMake_34(u8 *serialnum, u8 *data) {
+void MsgMake_34(u8 *serialnum, u8 data) {
 	memset(&Msg_34, 0, sizeof(QUE_TDF_QUEUE_MSG));
 	u16 index = 0;
 	//信息类型
@@ -366,7 +339,7 @@ void MsgMake_34(u8 *serialnum, u8 *data) {
 	Msg_34.data[index++] = serialnum[1];
 	Msg_34.data[index++] = serialnum[2];
 	Msg_34.data[index++] = 0x33;
-	Msg_34.data[index++] = data[0];
+	Msg_34.data[index++] = data;
 
 	//信息长度
 	u8 len[4] = { 0 };
@@ -1460,9 +1433,28 @@ u32 Can_Read_Buffer(u8 *buf, u8 type) {
 /*
  * 【0xB4】数据收集数据汇报
  * */
-void MsgMake_B4()
-{
+QUE_TDF_QUEUE_MSG Msg_B4;
+void MsgMake_B4() {
+	int index = 0;
+	memset(&Msg_B4, 0, sizeof(QUE_TDF_QUEUE_MSG));
 
+	//信息类型
+	Msg_B4.MsgType = 0xB4;
+	//版本号
+	cpyVersion(Msg_B4.Version);
+	//信息生成时间
+	cpyInfoTime(Msg_B4.Time);
+	//属性标识  高字节在前
+	Msg_B4.Attribute[0] = 0x40;
+	Msg_B4.Attribute[1] = 0;
+
+//	Msg_B4.data[index++] =
+
+	u8 len[4] = { 0 };
+	sprintf((char*) len, "%04X", (unsigned int) index); //消息体长度
+	api_HexToAsc(len, Msg_B4.length, strlen((char*) len));
+	printf_msg("<MsgMake_B4>message ready in queue %d bytes!!! \n", index + 16);
+	PassThrough_in(&Msg_B4); //信息入队列
 }
 
 /**
@@ -1473,7 +1465,7 @@ void MsgMake_B4()
  * 返回值 事件设置个数
  *
  */
- int MsgDecode_B5(u8 *data, u32 len, u8 isWebData) {
+int MsgDecode_B5(u8 *data, u32 len, u8 isWebData) {
 	//printfHexData(data, len);
 	u8 i, n, num, state, number;
 	int index;

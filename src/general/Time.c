@@ -61,6 +61,31 @@ void rtc_set_alarm(struct tm *rtc_tm) {
 	end: close(fd);
 }
 
+void rtc_set_alarm(struct tm *rtc_tm)
+{
+	int retval = 0;
+
+	int fd = open(RTC_port, O_RDONLY);
+	if ( fd < 0 ) {
+		printf("open rtc faild!!!\n");
+		goto end;
+	}
+
+	retval = ioctl(fd, RTC_ALM_SET, rtc_tm);
+	if ( retval < 0 ) {
+		printf("ioctl RTC_ALM_SET  faild!!!");
+		goto end;
+	}
+	/* Enable alarm interrupts */
+	usleep(1000);
+	retval = ioctl(fd, RTC_AIE_ON, 0);
+	if ( retval < 0 ) {
+		printf("ioctl  RTC_AIE_ON faild!!!\n");
+		goto end;
+	}
+	end :close(fd);
+}
+
 /****************************************************
  *funcname :SystemTimeRead
  *describe		:read system time

@@ -75,6 +75,8 @@ TDF_ENUM_PRMID TDF_PrmID;
 TDF_GET_DATA TdfGetData;
 TDF_SET_DATA TdfSetData;
 
+u8 cand_command_reset;//can reset value
+
 int cand_RecvHandle(int canx, struct can_frame* candata, int nframe);
 //******************************************************************
 
@@ -2365,21 +2367,22 @@ int candA_RecvHandle(struct can_frame* candata) {
 	switch (CmdID)
 	{
 	case 1:    //Set data
-		printf("Set data:\n");
+//		printf("Set data:\n");
 		SetData_rxq(candata->data);
 		break;
 	case 2:    //Get data
-		printf("Get data:\n");
+//		printf("Get data:\n");
 		GetData_rxq(candata->data);
 		break;
 	case 4:    //Set_Fault
-		printf("Set Fault:\n");
+//		printf("Set Fault:\n");
 		candata->data[0] = (0x40 | (candata->data[0] & 0x01)) | (CmdID << 1);
 		break;
 	case 5:    //Reset
-		printf("Reset:\n");
+//		printf("Reset:\n");
 		candata->data[0] = (0x40 | (candata->data[0] & 0x01)) | (CmdID << 1);
 		tmp_u8 = candata->data[1];
+		cand_command_reset = tmp_u8;//can command reset
 		switch (tmp_u8)
 		{
 		case 0:    //FaultReset
@@ -2399,7 +2402,7 @@ int candA_RecvHandle(struct can_frame* candata) {
 		}
 		break;
 	case 14:    //Restart
-		printf("Restart:\n");
+//		printf("Restart:\n");
 		candata->data[0] = (0x40 | (candata->data[0] & 0x01)) | (CmdID << 1);
 		break;
 	default:
@@ -2408,7 +2411,7 @@ int candA_RecvHandle(struct can_frame* candata) {
 	}
 	memcpy(&canA_SendBuf.data, &candata->data, 8);
 //	printfHexData(canA_SendBuf.data, 8);
-	can_write(CANA_fd, &canA_SendBuf);
+//	can_write(CANA_fd, &canA_SendBuf);
 	return 0;
 }
 

@@ -104,16 +104,16 @@ int CAN_close() {
  *  Return:the number of frame
  ********************************************/
 int CAN_Read(int fd, struct can_frame* CanRxBuf, int CanBufNum) {
-	printf("############## %s ##############\n", __FUNCTION__);
+	//printf("############## %s ##############\n", __FUNCTION__);
 	int nbytes = 0, nframes = 0;
 
 	nbytes = read(fd, CanRxBuf, CanBufNum * sizeof(struct can_frame));
 	if (nbytes <= 0)
 		return 0;
 //	printf("<%s>:\n", __FUNCTION__);
-	printf("can id:%02x | ", CanRxBuf->can_id);
-	printf("can data len:%d |can data ", CanRxBuf->can_dlc);
-	api_PrintfHex(CanRxBuf->data, CanRxBuf->can_dlc);
+//	printf("can id:%02x | ", CanRxBuf->can_id);
+//	printf("can data len:%d |can data ", CanRxBuf->can_dlc);
+//	api_PrintfHex(CanRxBuf->data, CanRxBuf->can_dlc);
 	nframes = nbytes / sizeof(struct can_frame);
 	return nframes;
 }
@@ -133,7 +133,7 @@ int can_write(int fd, struct can_frame* CanTxBuf) {
 //		perror("can write");
 //	}
 
-	printf("<%s>:\n", __FUNCTION__);
+//	printf("<%s>:\n", __FUNCTION__);
 //	printf("can id:%02x | \n ", frame_tx.can_id);
 //	printf("can data len:%d |can data ", frame_tx.can_dlc);
 //	api_PrintfHex(frame_tx.data, frame_tx.can_dlc);

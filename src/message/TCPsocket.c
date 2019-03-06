@@ -26,6 +26,8 @@ int client_sockfd = 0; //socket 句柄
 char StickBuf[BUFLEN] = { 0 }; //粘包处理
 u16 GPRS_flag = 0;
 
+RecMessage sRecMsg; //接收消息体
+
 /*-----------------------------------------------------
  Name    :Switch_IP()
  Funciton:切换IP ，标记状态
@@ -350,10 +352,29 @@ void *TCPSocketRecvpThread(void *argv) {
  char* buf:要发送的字符串
  int   len:字符串的长度
  **************************************************/
+void Msg_delete(int type) {
+	switch (type)
+	{
+	case 1:
+		que_sqlite_del(InterSta_table, sqlite_InterSta_count, InterSta_key_sn); //出库后删除该记录
+		break;
+	case 2:
+		InterSta_delete(); //出队后删除
+		break;
+	case 3:
+		que_sqlite_del(PassThrough_table, sqlte_PassThrough_count, PassThrough_key_sn); //出库后删除该记录
+		break;
+	case 4:
+		PassThrough_delete(); //出队后删除
+		break;
+	default:
+		break;
+	}
+}
 void *TCPSocketSendpThread(void *argv) {
 	printf_gsm("############## %s start ##############\n", __FUNCTION__);
 //	Get_Now_Time();
-	char *p; //信息出对指针
+	QUE_TDF_QUEUE_MSG p; //信息出对指针
 	u8 buf[BUFLEN] = { 0 };
 	u8 strIMEI[9] = { 0 }; //IMEI号拼串用
 	u8 str1[BUFLEN] = { 0 };
@@ -366,34 +387,27 @@ void *TCPSocketSendpThread(void *argv) {
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); //设置异步属性
 	SockSend_PthParam.flag = TRUE;
 	while (SockSend_PthParam.flag) {
-		if (sqlte_PassThrough_count > 0) { //优先取数据库数据
-			GPRS_flag = 1; //有数据发送
-			p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
-			que_sqlite_out((u8*) p, PassThrough_table,sqlte_PassThrough_count,PassThrough_key_sn);
-			que_sqlite_del(PassThrough_table,sqlte_PassThrough_count,PassThrough_key_sn); //出库后删除该记录
-			type = 0;
-			nbuf = Msg_Spell(p, buf); //出队后添加数据压缩功能
-			free(p);
-		} else if (PassThrough_count > 0) { //数据库空时取队列数据
-			GPRS_flag = 1; //有数据发送
-			p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
-			PassThrough_out(p);
+		memset(&p, 0x00, sizeof(QUE_TDF_QUEUE_MSG));
+		GPRS_flag = 1; //有数据发送
+		if (sqlite_InterSta_count > 0) { //优先取统计交互信息数据库数据
+			que_sqlite_out((u8*)(&p), InterSta_table, sqlite_InterSta_count, InterSta_key_sn);
 			type = 1;
-			nbuf = Msg_Spell(p, buf); ///出队后添加数据压缩功能
-			free(p);
+		} else if (InterSta_count > 0) {
+			InterSta_out(&p);
+			type = 2;
+		} else if (sqlte_PassThrough_count > 0) { //优先取数据库数据
+			que_sqlite_out((u8*)(&p), PassThrough_table, sqlte_PassThrough_count, PassThrough_key_sn);
+			type = 3;
+		} else if (PassThrough_count > 0) { //数据库空时取队列数据
+			PassThrough_out(&p);
+			type = 4;
 		} else {
-			GPRS_flag = 0; //有数据发送
-			usleep(10 * 1000); //没有数据时300s发心跳
-
-			if (api_DiffSysMSecs(start_time) >= 300 * 1000) {
-				printf_gsm("send heart ! \n");
-				send(client_sockfd, "hello", 6, 0); //MSG_WAITALL,MSG_DONTWAIT
-				start_time = api_GetSysmSecs();
-			}
-			continue;
+			GPRS_flag = 0; //无数据发送，需要生成62信息
+			usleep(20 * 1000); //没有数据时300s发心跳
 		}
+		nbuf = Msg_Spell(&p, buf); ///出队后添加数据压缩功能
 		Get_IMEI(strIMEI); //获取IMEI号
-		if (strIMEI[0] == 0) {
+		if (strIMEI[0] == 0 || GPRS_flag == 0) { //无IMEI 号或者无发送数据进入下一次循环
 			continue;
 		}
 		memcpy(str1, strIMEI, 9); //IMEI号
@@ -417,14 +431,20 @@ void *TCPSocketSendpThread(void *argv) {
 			if (client_sockfd > 0) { //MSG_NOSIGNAL
 				int len = send(client_sockfd, str1, mlen, 0);
 				if (len > 0) {
-					if (type == 1) {
-						PassThrough_delete(); //出队后删除
-						type = -1;
-					} else if (type == 0) {
-						type = -1;
+					if ((p.Attribute[0] & 0x80) == 0x80) {
+						while (api_DiffSysMSecs(start_time) <= (15 * 1000)) {//15s反应时间
+							usleep(10 * 1000);
+							if ((sRecMsg.MsgType == p.MsgType) && (memcmp(sRecMsg.data, p.Time, 8) == 0)) { //收到通用应答
+								if (sRecMsg.data[9] == 0xFF) {//且处理成功,删除这条信息否则认为处理失败继续发送
+									Msg_delete(type);
+								}
+								break;
+							}
+						}
 					}
+					start_time = api_GetSysmSecs();
+					type = -1;
 					printf_gsm("Send %d byte  count: %d tiao info , info type:%02X !\n", len, count++, str1[10]);
-//					api_PrintfHex(str1, mlen);
 					if (debug_value & 0x01) {
 						Get_Now_Time();
 					}
@@ -434,13 +454,12 @@ void *TCPSocketSendpThread(void *argv) {
 						usleep(100 * 1000);
 					}
 				} else {
-					GPRS_flag = 2; //有数据发送
+					GPRS_flag = 2; //数据发送失败
 //					System.DaySummary.GPRSErrCount++; //当天发送GPRS信息失败次数
 					printf_gsm("send data error socket_flag=1,socket need to restart ! \n");
 					Socket_Flag = 1; //置位重新链接socket
 					break;
 				}
-				start_time = api_GetSysmSecs();
 			} else {
 				printf_gsm("client_sockfd error socket_flag=1,socket need to restart ! \n");
 				Socket_Flag = 1; //置位重新链接socket
@@ -614,7 +633,7 @@ uint16_t Msg_DeConvert(u8 *rdata, u8 *data, uint16_t len) {
  Return:
  *******************************************************/
 int Read_Para_set(void) {
-	InitE5();
+
 	return 0;
 }
 
@@ -633,10 +652,11 @@ int servMsgHandle(u8 *Msg, u16 len) {
 	u8 ssLen[4] = { 0 };
 	u8 sCRC = 0;
 	u8 cSum = 0;
-	RecMessage sRecMsg;
+	memset(&sRecMsg, 0x00, sizeof(RecMessage));
 	memcpy(&sRecMsg.MsgType, Msg + offest, 1); //消息类型
-	//sRecMsg.MsgType[1] = '\0';
 	offest += 1;
+	memcpy(&sRecMsg.SerialNum, Msg + offest, 3); //消息对照码
+	offest += 3;
 	memcpy(sRecMsg.Attribute, Msg + offest, 2); //消息属性
 	offest += 2;
 	memcpy(sLen, Msg + offest, 2); //消息体长度十六进制形式
@@ -644,7 +664,7 @@ int servMsgHandle(u8 *Msg, u16 len) {
 	api_HexToAsc(sLen, ssLen, 2); //先转成文本，下一步十六进制串转十进制
 	sRecMsg.MsgLen = (HexStr2Int((char*) ssLen, 4)) / 8; //消息体长度
 	printf_gsm("MsgLen:%d\n", sRecMsg.MsgLen);
-	if (sRecMsg.MsgLen > 1500) {
+	if (sRecMsg.MsgLen > 1500) { //
 		printf_gsm("Message length error !\n");
 		return -1;
 	} else {
@@ -657,14 +677,48 @@ int servMsgHandle(u8 *Msg, u16 len) {
 	cSum = api_CheckSum(Msg, len - 2); //计算结果校验码
 	if (sCRC != cSum) { //如果结算结果于消息体中校验码不匹配，作出错处理
 		printf_gsm("CRC error!\n");
+		if ((sRecMsg.Attribute[0] & 0x80) == 0x80) {
+			RT_ger_reply_msg(sRecMsg.SerialNum, sRecMsg.MsgType, 0x00);
+		}
 		return -1;
+	} else {
+		if ((sRecMsg.Attribute[0] & 0x80) == 0x80) {
+			RT_ger_reply_msg(sRecMsg.SerialNum, sRecMsg.MsgType, 0xFF);
+		}
 	}
 	//中心下发信息分流处理
 	switch (sRecMsg.MsgType)
 	{
-
+	case 0x61: // 中心通用应答
+		MsgDecode_61(sRecMsg.data);
+		break;
+	case 0x31: //初期设定回复信息
+		MsgDecode_31(sRecMsg.SerialNum, sRecMsg.data);
+		break;
+	case 0x33: //设置/回叫初期设定状态信息
+		MsgDecode_33(sRecMsg.SerialNum, sRecMsg.data);
+		break;
+	case 0x35: //设置/回叫配对参数信息
+		MsgDecode_35(sRecMsg.SerialNum, sRecMsg.data);
+		break;
+	case 0x37: //设置终端参数信息
+		MsgDecode_37(sRecMsg.SerialNum, sRecMsg.data, sRecMsg.MsgLen);
+		break;
+	case 0x39: //回叫终端参数信息
+		MsgDecode_39(sRecMsg.SerialNum, sRecMsg.data);
+		break;
+	case 0x41: //远程操作设置信息
+		MsgDecode_41(sRecMsg.SerialNum, sRecMsg.data, sRecMsg.MsgLen);
+		break;
+	case 0x43: //回叫指定参数组信息
+		MsgDecode_43(sRecMsg.SerialNum, sRecMsg.data);
+		break;
+	case 0x45: //设置/回叫产权显示状态信息
+		MsgDecode_45(sRecMsg.SerialNum, sRecMsg.data);
+		break;
 	default:
-		printf_gsm("Message type error !\n");
+		printf_gsm("Message type error !\n")
+		;
 		break;
 	}
 

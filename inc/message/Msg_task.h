@@ -13,15 +13,10 @@
 #include "candata.h"
 #include "general.h"
 
-
 //配置参数保存目录
-#define D1_file   "/opt/D1.ty"           //定时透传设置信息保存文件
-#define D5_file   "/opt/D5.ty"           //事件设置信息保存文件
-#define D9_file   "/opt/D9.ty"           //事件透传设置信息保存文件
-#define E5_file   "/opt/E5.ty"           //终端参数设置信息保存文件
-#define E9_file   "/opt/E9.ty"           //参数统计设置信息保存文件
-#define F1_file   "/opt/F1.ty"           //发送单元设置信息保存文件
-#define F3_file   "/opt/F3.ty"           //定时拍照设置信息
+#define B5_file   "/opt/B5.ty"           //事件设置信息保存文件
+#define B9_file   "/opt/B9.ty"           //事件透传设置信息保存文件
+#define C5_file   "/opt/C5.ty"           //实时诊断透传参数设置
 
 /******************【0x37】终端参数设置信息***************************/
 typedef struct {
@@ -80,11 +75,6 @@ SYS_SET_Struct1 SYS_SET1;
 extern SYS_SET_Struct2 SYS_SET2;
 dwordbit ParamOpera; //参数选项
 
-
-//配置参数保存目录
-#define B5_file   "/opt/B5.ty"           //事件设置信息保存文件
-#define B9_file   "/opt/B9.ty"           //事件透传设置信息保存文件
-#define C5_file   "/opt/C5.ty"           //实时诊断透传参数设置
 /******************【0xC3】实时诊断透传参数设置信息 ***************************/
 typedef struct{
 	u8 BeginSet;
@@ -197,10 +187,29 @@ void cpymem(void *dest, u8 *src, int length, int *offest);
 void strGet(u8 *dest, u8 *src, int length, int *offset);
 /****************** 参数保存读取函数 ********************************/
 extern void save2flash(char *file, u8 *data, u32 length);       //参数保存
-extern int getData(char *file, u8 *data);                      //参数读取
-/******************协议处理函数************************************/
-extern void MsgDecode_31(u8 *serialnum, u8 *data);
-extern void MsgMake_32(u8 *serialnum);
-extern void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22);
-extern void InitE5();
+extern int getData(char *file, u8 *data);                       //参数读取
+extern void InitE5();											//E2参数读取
+/******************协议交互类信息************************************/
+extern void MsgMake_22(QUE_TDF_QUEUE_MSG *Msg_22);//定时信息
+extern void MsgMake_30();//初期设定信息
+extern u8 MsgDecode_31(u8 *serialnum, u8 *data);//初期设定回复信息
+extern void MsgMake_32(u8 *serialnum);//初期设定完成信息
+extern void MsgDecode_33(u8 *serialnum, u8 *data);//设置/回叫初期设定状态信息
+extern void MsgMake_34(u8 *serialnum, u8 data);//回叫初期设定状态回复信息
+extern void MsgDecode_35(u8 *serialnum, u8 *data);//设置/回叫配对参数信息
+extern void MsgMake_36(u8 *serialnum, u8 *data);//回叫配对参数回复信息
+extern int MsgDecode_37(u8 *serialnum, u8 *data, int Len);//设置终端参数信息
+extern void MsgMake_38(u8 *serialnum, u8 TypeVer, u32 ParOpt, u8 ReplyType);//终端参数回复信息
+extern void MsgDecode_39(u8 *serialnum, u8 *data);//回叫终端参数信息
+extern void MsgDecode_41(u8 *serialnum, u8 *data, int Len);//远程操作设置信息
+extern void MsgMake_42(u8 *serialnum, u16 ArrayNum, u8 ReplyType);//远程操作设置回复信息
+extern void MsgDecode_43(u8 *serialnum, u8 *data);//回叫指定参数组信息
+extern void MsgMake_44(u8 *serialnum, u8 *data);//回叫指定参数组回复信息
+extern void MsgDecode_45(u8 *serialnum, u8 *data);//设置/回叫产权显示状态信息
+extern void MsgDecode_46(u8 *serialnum, u8 *data);//设置/回叫产权显示状态回复信息
+/*******************************************************************/
+
+
+extern void RT_ger_reply_msg(u8 *serialnum, u8 msgType, u8 result);//终端通用应答
+extern void MsgDecode_61(u8 *data);//中心通用应答
 #endif /* MSG_TASK_H_ */

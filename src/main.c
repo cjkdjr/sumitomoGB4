@@ -26,15 +26,13 @@
 #include "bluetooth.h"
 #include "candriver.h"
 #include "candata.h"
-#include "canhandle.h"
 #include "iap.h"
 #include "gpsdeal.h"
 #include "gsm.h"
 #include "sys_manage.h"
-#include "message_process.h"
 
 //版本号自定义 版本更新实时修改
-struct Version_con Version = { 0x1073, 0x01 };
+struct Version_con Version = { 0x1075, 0x01 };
 
 unsigned int debug_value = 255;
 unsigned char debug_str[10] = { 0 };
@@ -111,8 +109,8 @@ void *main_PthreadManagement(void *data) {
 	}
 	while (main_PthParam.flag) {
 		main_PthParam.sta = 1;
-//		main_WatchPthread(&can_PthParamA, MAIN_TIMER_SEC(60), CanData_sockA, "CANAsock");
-		main_WatchPthread(&can_PthParam, MAIN_TIMER_SEC(60), canh_TransProcess, "CANTransProcess");
+		main_WatchPthread(&can_PthParamA, MAIN_TIMER_SEC(60), CanData_sockA, "CANAsock");
+		main_WatchPthread(&can_PthParam, MAIN_TIMER_SEC(60), canh_TransProcess, "CANTransProcess")
 //		main_WatchPthread(&can_PthParamRecvB, MAIN_TIMER_SEC(60), CanData_SockRecvB, "CANBrecv");
 //		main_WatchPthread(&can_PthParamSendB, MAIN_TIMER_SEC(60), CanData_SockRecvC, "CANCrecv");
 //		main_WatchPthread(&can_PthParamRecvC, MAIN_TIMER_SEC(60), CanData_SockSendB, "CANBsend");
@@ -176,7 +174,7 @@ int main(int argc, char *argv[]) {
 		printf("watchdog ID:%d\n", wtd_fd);
 #endif
 	while (1) {
-#if 0
+		#if 0
 		if (wtd_fd > 0 && hw_dog_restflg != 1) {
 			wtd_ret = ioctl(wtd_fd, WDIOC_KEEPALIVE, 0); //喂硬狗
 			if (wtd_ret < 0) {
@@ -189,7 +187,7 @@ int main(int argc, char *argv[]) {
 		} else {
 //			printf("wtd will closed!\n");
 		}
-#endif
+		#endif
 		sleep(1);
 		//软看门狗任务
 		main_WatchPthread(&main_PthParam, MAIN_TIMER_SEC(60), main_PthreadManagement, "wdg");

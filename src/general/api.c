@@ -169,7 +169,6 @@ unsigned char ValHex(int val) {
 		return '$';
 	}
 }
-
 /*
  文本串转十六进制串
  */

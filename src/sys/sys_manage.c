@@ -395,13 +395,13 @@ void init_total_param(void) {
 //		gsm_info_cur.status = 0;
 //	printf("gsm_info_cur.status:%d\n", gsm_info_cur.status);
 
-	length = sizeof(StayMinute);
-	e2p_read_page(E2p_addr + offset, (uint8_t*) &StayMinute, length); //过天使用
-	offset += length;
-	e2p_read_page(E2p_addr + offset, &CheckSum, 1); //过天记录参数校验码
-	offset += 1;
-	if (CheckSum != api_CheckSum((uint8_t*) &StayMinute, length))
-		memset(&StayMinute, 0, length);
+    length = sizeof(StayMinute);
+    e2p_read_page(E2p_addr + offset, (uint8_t*) &StayMinute, length); //休眠三小时发送待机信息
+    offset += length;
+    e2p_read_page(E2p_addr + offset, &CheckSum, 1); 
+    offset += 1;
+    if (CheckSum != api_CheckSum((uint8_t*) &StayMinute, length))
+        memset(&StayMinute, 0, length);
 
 	length = sizeof(gsm_info_cur);
 	e2p_read_page(E2p_addr + offset, (uint8_t*) &gsm_info_cur, length); //gsm当前状态
@@ -464,13 +464,14 @@ void save_total_param(void) {
 	int offset = 0; //地址偏移量
 	u8 CheckSum = 0;
 	u16 length = 0;
-
+	
 	length = sizeof(StayMinute);
-	e2p_write_page(E2p_addr + offset, (uint8_t*) &StayMinute, length);
-	offset += length;
-	CheckSum = api_CheckSum((uint8_t*) &StayMinute, length);
-	e2p_write_page(E2p_addr + offset, &CheckSum, 1); //
-	offset += 1;
+    e2p_write_page(E2p_addr + offset, (uint8_t*) &StayMinute, length);
+    offset += length;
+    CheckSum = api_CheckSum((uint8_t*) &StayMinute, length);
+    e2p_write_page(E2p_addr + offset, &CheckSum, 1); 
+    offset += 1;
+
 
 	length = sizeof(gsm_info_cur);
 	e2p_write_page(E2p_addr + offset, (uint8_t*) &gsm_info_cur, length); //gsm参数20Bytes
@@ -777,7 +778,8 @@ int sys_poll() {
 		sys_PthParam.sta = 1;
 		can_PthParam.flag = FALSE;
 		sleep(1);
-		printf_sys("sys_state_stop:\n");
+		printf_sys("sys_state_stop:\n")
+		;
 		if (System.AccState == 1) {
 			printf_sys("checked acc on !!,ready to enable GPS GSM moudle \n");
 			system_state = sys_state_start;

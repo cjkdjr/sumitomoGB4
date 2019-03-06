@@ -75,7 +75,6 @@ void InterSta_in(void *src) {
 	pthread_mutex_lock(&InterStaQuemutex);
 
 	System.DaySummary.MessMakeNum++;
-	printf("*********************************************InterSta_count %d\n", InterSta_count);
 	if (InterSta_count >= InterStaQue_buffer_max)    //环形缓冲区满后数据存入数据库
 	{
 		char *p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
@@ -140,7 +139,7 @@ void PassThrough_in(void *src) {
 
 		rngBufGet(&PassThrough_queue, p, sizeof(QUE_TDF_QUEUE_MSG));
 		PassThrough_count--;
-		que_sqlite_in((unsigned char*) p, PassThrough_table, sqlte_PassThrough_count,PassThrough_key_sn);
+		que_sqlite_in((unsigned char*) p, PassThrough_table, sqlte_PassThrough_count, PassThrough_key_sn);
 
 		printf_msg("queue is full move one message to sql,sqlite_count:%d! \n", sqlte_PassThrough_count);
 		free(p);
@@ -185,39 +184,31 @@ void PassThrough_delete(void) {
  NAME:queue_save
  FUNC:程序退出时保存队列数据到数据库
  * **************************************************************/
+void que_sqlite_save(RING *que, char *table_que, int que_count, int table_key) {
+	char *p;
+	if (que_db == NULL)
+		que_sqlite_open();
+	p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
+	sqlite3_exec(que_db, "begin;", 0, 0, 0);
+	while (que_count > 0) {
+		memset(p, 0X00, sizeof(QUE_TDF_QUEUE_MSG));
+		rngBufGet(que, p, sizeof(QUE_TDF_QUEUE_MSG));
+		que_count--;
+		que_sqlite_in((u8*) p, table_que, que_count, table_key);
+	}
+	sqlite3_exec(que_db, "commit;", 0, 0, 0);
+	free(p);
+}
 int queue_save(void) {
 	if (que_db != NULL)
 		que_sqlite_open();
-	char *p;
 	if (InterSta_count > 0) {
-		if (que_db == NULL)
-			que_sqlite_open();
 		printf_msg("it's going to shutdown soon,  we'll move InterStaInfo message(%d) to sql\n", InterSta_count);
-		p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
-		sqlite3_exec(que_db, "begin;", 0, 0, 0);
-		while (InterSta_count > 0) {
-			memset(p, 0X00, sizeof(QUE_TDF_QUEUE_MSG));
-			rngBufGet(&InterSta_queue, p, sizeof(QUE_TDF_QUEUE_MSG));
-			InterSta_count--;
-			que_sqlite_in((u8*) p, InterSta_table, sqlite_InterSta_count, InterSta_key_sn);
-		}
-		sqlite3_exec(que_db, "commit;", 0, 0, 0);
-		free(p);
+		que_sqlite_save(&InterSta_queue, InterSta_table, sqlite_InterSta_count, InterSta_key_sn);
 	}
 	if (PassThrough_count > 0) {
-		if (que_db == NULL)
-			que_sqlite_open();
 		printf_msg("it's going to shutdown soon,  we'll move PassThroughInfo  message(%d) to sql\n", PassThrough_count);
-		p = (char*) malloc(sizeof(QUE_TDF_QUEUE_MSG));
-		sqlite3_exec(que_db, "begin;", 0, 0, 0);
-		while (PassThrough_count > 0) {
-			memset(p, 0X00, sizeof(QUE_TDF_QUEUE_MSG));
-			rngBufGet(&PassThrough_queue, p, sizeof(QUE_TDF_QUEUE_MSG));
-			PassThrough_count--;
-			que_sqlite_in((u8*) p, InterSta_table, sqlte_PassThrough_count, PassThrough_key_sn);
-		}
-		sqlite3_exec(que_db, "commit;", 0, 0, 0);
-		free(p);
+		que_sqlite_save(&PassThrough_queue, PassThrough_table, sqlte_PassThrough_count, PassThrough_key_sn);
 	}
 	if (que_db != NULL)
 		que_sqlite_close();
@@ -253,7 +244,7 @@ int que_sqlite_in(u8 *sdata, char *tableName, int sqlite_count, int que_key_sn) 
 	if (que_db == NULL)
 		que_sqlite_open();
 	if (sqlite_count >= QUE_MSG_CNT_MAX) {
-		ret = sql_select(que_db, 0, NULL, tableName,  que_key_sn);
+		ret = sql_select(que_db, 0, NULL, tableName, que_key_sn);
 		if (ret != 0) {
 			printf_msg("sql_select err !\n");
 			return ret;
@@ -286,7 +277,7 @@ int que_sqlite_in(u8 *sdata, char *tableName, int sqlite_count, int que_key_sn) 
  PARA:u8* sdata:存放出库信息串
  Return:返回数据库状态
  *******************************************************/
-int que_sqlite_out(u8 *sdata, char *tableName, int sqlite_count , int que_key_sn) {
+int que_sqlite_out(u8 *sdata, char *tableName, int sqlite_count, int que_key_sn) {
 	if (que_db == NULL)
 		que_sqlite_open();
 	if (sqlite_count == 0) {

@@ -188,6 +188,17 @@ int socket_bt() {
 	struct sockaddr_rc loc_addr = { 0 };
 	int result;
 
+	int ret = -1;
+
+	ret = access("/etc/rcS.d/S69wifi", F_OK);
+	if (ret == 0) {
+		system("wr enable");
+		system("ifconfig wlan0 down");
+		system("mkdir -p /lib/modules/3.10.101");
+		system("rmmod bcmdhd");
+		remove("/etc/rcS.d/S69wifi");
+		system("wr disable");
+	}
 	/*创建socket */
 	printf_bt("Creating socket...\n");
 	usleep(1000);
@@ -429,7 +440,7 @@ int bluetooth_snd(void) {
 		sleep(1);
 	}
 	close(s);
-	s= -1;
+	s = -1;
 	return 0;
 }
 

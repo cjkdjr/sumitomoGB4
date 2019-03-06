@@ -1062,7 +1062,6 @@ void *gsm_Pthread(void *argv) {
 	gpio_SetModeValue("196", "low");
 	while (gsm_PthParam.flag) {
 		gsm_PthParam.sta = 1;
-
 		GSMpoll();
 		usleep(1000 * 1000);
 	}
