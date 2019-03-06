@@ -101,6 +101,8 @@ extern u16 cand_BatteryVoltage;//电源电压
 #define CANID_CTRLA_RECV  ((u32)0x18FF45E4) //CAN busA Recv ID
 #define CANID_CTRLA_SEND ((u32)0x18FF46EC) //CAN busA Send ID
 
+extern u8 cand_command_reset;//can reset value
+
 typedef enum {
 	// GetData PrmID
 	PrmID_Ver = 1,
